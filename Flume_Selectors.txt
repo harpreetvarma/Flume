@@ -1,0 +1,45 @@
+
+# REPLICATING SELECTOR
+
+a1.sources = src
+a1.channels = c1 c2
+a1.sinks = s1 s2
+
+# DEFINING SOURCES
+
+a1.sources.src.type = netcat
+a1.sources.src.bind = localhost
+a1.sources.src.port = 44444
+a1.sources.src.selector.type = replicating
+
+
+# DEFINING SINK s1
+
+a1.sinks.s1.type = hdfs
+a1.sinks.s1.hdfs.path = hdfs://sandbox.hortonworks.com:8020/user/root/flume-selector
+a1.sinks.s1.hdfs.filePrefix = logs-
+a1.sinks.s1.rollSize = 100000
+a1.sinks.s1.batchsize = 100 
+
+# DEFINING SINK s2
+
+a1.sinks.s2.type = logger
+
+# DEFINING CHANNLE c1
+
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 10000
+a1.channels.c1.transactionCapacity = 10000
+
+# DEFINING CHANNLE c2
+
+a1.channels.c2.type = memory
+a1.channels.c2.capacity = 10000
+a1.channels.c2.transactionCapacity = 10000
+
+# LINKING WITH CHANNELS
+
+a1.sources.src.channels = c1 c2
+a1.sinks.s1.channel = c1
+a1.sinks.s2.channel = c2
+

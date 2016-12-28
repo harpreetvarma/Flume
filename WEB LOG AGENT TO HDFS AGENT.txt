@@ -1,0 +1,33 @@
+
+# WEB LOG AGENT TO HDFS AGENT
+
+# WEB LOG AGENT
+
+# Defining Components Here
+a1.sources = s1
+a1.sinks = s11
+a1.channels = c1
+
+# Source Properties
+
+ a1.sources.s1.type = netcat
+#a1.sources.s1.spoolDir = /root/test
+ a1.sources.s1.bind = localhost
+ a1.sources.s1.port = 44444
+
+# Channel Properties
+
+a1.channels.c1.type = memory
+a1.channels.c1.capacity = 10000
+a1.channels.c1.transactionCapacity = 10000
+
+# Sink Prperties
+
+a1.sinks.s11.type = avro
+a1.sinks.s11.hostname = localhost
+a1.sinks.s11.port = 44455
+
+# Linking with Channel
+
+a1.sources.s1.channels = c1
+a1.sinks.s11.channel = c1

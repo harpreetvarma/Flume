@@ -1,0 +1,25 @@
+# define agent
+
+agent.sources = so
+agent.channels = ch
+agent.sinks = si
+
+# define source conf
+
+agent.sources.so.type = spooldir
+agent.sources.so.spoolDir =  /root/test
+
+# define channel
+
+agent.channels.ch.type = memory
+agent.channels.ch.capacity = 3000
+agent.channels.ch.transactionCapacity = 300
+
+# define sink
+
+agent.sinks.si.type = logger
+
+#bind
+
+agent.sources.so.channels = ch
+agent.sinks.si.channel = ch

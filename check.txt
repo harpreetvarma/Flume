@@ -1,0 +1,5 @@
+flume-ng agent -n a1 -f /file-path
+
+telnet localhost 44444
+
+ hadoop fs -ls hdfs://sandbox.hortonworks.com:8020/user/root/logs-.1482594721991

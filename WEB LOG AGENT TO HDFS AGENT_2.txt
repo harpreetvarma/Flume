@@ -1,0 +1,37 @@
+
+# HDFS AGENT
+
+a2.sources = so
+a2.sinks = si
+a2.channels = ch
+
+# Defining Source
+
+a2.sources.so.type = avro
+a2.sources.so.bind = localhost
+a2.sources.so.port = 44455
+
+# Defining Channel
+
+a2.channels.ch.type = memory
+a2.channels.ch.capacity = 10000
+a2.channels.ch.transactionCapacity = 10000
+
+# Defining Sink
+
+a2.sinks.si.type = hdfs
+a2.sinks.si.hdfs.path = hdfs://sandbox.hortonworks.com:8020/user/root/
+a2.sinks.si.hdfs.filePrefix = logs-
+a2.sinks.si.rollSize = 100000
+a2.sinks.si.batchsize = 100
+a2.sinks.si.hdfs.fileType = SequenceFile
+a2.sinks.si.hdfs.writeFormat = Text
+a2.sinks.si.sink.serializer = text
+a2.sinks.si.sink.serializer.appendNewline = true
+
+
+
+# Linking With Channels
+
+a2.sources.so.channels = ch
+a2.sinks.si.channel = ch
