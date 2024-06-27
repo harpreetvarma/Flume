@@ -1,0 +1,52 @@
+Here's the complete code for the optimized Avro decoder:
+```
+import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.input.WholeFileInputFormat;
+import org.apache.spark.serializer.AvroSerializer;
+import org.apache.spark.serializer.AvroDeserializer;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericDeserializer;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+
+import java.io.Serializable;
+import java.util.Arrays;
+
+public class AvroDecoder implements Serializable {
+  public static void main(String[] args) {
+    SparkConf conf = new SparkConf().setAppName("Avro Decoder");
+    JavaSparkContext jsc = new JavaSparkContext(conf);
+    
+    // Set input format to WholeFileInputFormat
+    conf.set("spark.datasource.input.format", WholeFileInputFormat.class.getName());
+    
+    // Read binary files into RDD
+    RDD<GenericRecord> avroRecords = jsc.binaryRecords(args[0], args[1])
+      .repartition(100) // Adjust partition count as needed
+      .map(new AvroDeserializer());
+    
+    // Process Avro records
+    avroRecords.foreach(record -> {
+      // Process the Avro record
+      System.out.println(record.toString());
+    });
+  }
+  
+  public static class AvroDeserializer implements Serializable, org.apache.spark.api.java.function.Function<byte[], GenericRecord> {
+    private GenericDeserializer deserializer = new GenericDeserializer();
+    
+    @Override
+    public GenericRecord call(byte[] bytes) {
+      Decoder decoder = DecoderFactory.get().binaryDecoder(bytes, null);
+      return deserializer.deserialize(decoder);
+    }
+  }
+}
+```
+This code assumes you have the Avro schema compiled and available in your classpath. The `AvroDeserializer` class is a custom deserializer that uses the `GenericDeserializer` to deserialize the Avro records.
+
+Note: Make sure to include the Avro and Spark libraries in your project dependencies. Also, adjust the `repartition` count based on your cluster resources and data size.
+
+To run this code on Dataproc, package it into a JAR file and submit it to your cluster using the `gcloud dataproc` command.
