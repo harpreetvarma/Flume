@@ -1,0 +1,140 @@
+Certainly! Here's how you can read binary Avro records formatted by line separator from `.bin` files using Apache Spark in Java, with support for serialization and records separated by line feed (`\n`).
+
+### Spark Java Equivalent Code:
+
+```java
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
+import org.apache.hadoop.mapreduce.lib.input.TextInputFormat;
+import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.input.PortableDataStream;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+
+public class SparkBinaryAvroReader {
+
+    public static void main(String[] args) {
+        // Spark configuration
+        SparkConf sparkConf = new SparkConf().setAppName("SparkBinaryAvroReader").setMaster("local[*]");
+        JavaSparkContext sparkContext = new JavaSparkContext(sparkConf);
+
+        // Path to the directory containing .bin files
+        String directoryPath = "path/to/binary_avro_data/";
+
+        try {
+            // Read binary Avro data files into JavaPairRDD
+            JavaPairRDD<String, PortableDataStream> avroFilesRDD = sparkContext.binaryFiles(directoryPath);
+
+            // Process each Avro file
+            JavaRDD<GenericRecord> avroRecordsRDD = avroFilesRDD.flatMap(file -> {
+                byte[] bytes = file._2().toArray();
+                return decodeAvroRecords(bytes);
+            });
+
+            // Print decoded Avro records (for demonstration)
+            avroRecordsRDD.foreach(record -> System.out.println(record));
+        } finally {
+            // Stop Spark context
+            sparkContext.stop();
+        }
+    }
+
+    private static Iterable<GenericRecord> decodeAvroRecords(byte[] bytes) throws IOException {
+        Schema schema = new Schema.Parser().parse("{\n" +
+                "  \"type\": \"record\",\n" +
+                "  \"name\": \"MyRecord\",\n" +
+                "  \"fields\": [\n" +
+                "    {\"name\": \"field1\", \"type\": \"string\"},\n" +
+                "    {\"name\": \"field2\", \"type\": \"int\"}\n" +
+                "  ]\n" +
+                "}");
+
+        GenericDatumReader<GenericRecord> datumReader = new GenericDatumReader<>(schema);
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(bytes);
+        BinaryDecoder binaryDecoder = DecoderFactory.get().binaryDecoder(byteArrayInputStream, null);
+
+        GenericRecord record;
+        try {
+            record = datumReader.read(null, binaryDecoder);
+        } finally {
+            byteArrayInputStream.close();
+        }
+
+        return record == null ? null : new SingleElementIterator<>(record);
+    }
+
+    // Custom iterator to handle single element
+    static class SingleElementIterator<T> implements Iterable<T> {
+        private final T element;
+
+        SingleElementIterator(T element) {
+            this.element = element;
+        }
+
+        @Override
+        public java.util.Iterator<T> iterator() {
+            return new java.util.Iterator<T>() {
+                private boolean hasNext = true;
+
+                @Override
+                public boolean hasNext() {
+                    return hasNext;
+                }
+
+                @Override
+                public T next() {
+                    if (!hasNext) {
+                        throw new java.util.NoSuchElementException();
+                    }
+                    hasNext = false;
+                    return element;
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException();
+                }
+            };
+        }
+    }
+}
+```
+
+### Explanation:
+
+- **Spark Configuration**: Sets up a local Spark context (`JavaSparkContext`) with a `SparkConf` object.
+
+- **Main Method**:
+  - Defines the directory path (`directoryPath`) where `.bin` files are located.
+  - Uses `JavaSparkContext.binaryFiles(directoryPath)` to read binary Avro data files into a `JavaPairRDD<String, PortableDataStream>`. Each file is represented as a key-value pair where the key is the file path and the value is a `PortableDataStream` containing the file's content.
+  - Calls `decodeAvroRecords` function to decode each `PortableDataStream` into Avro records (`GenericRecord`).
+
+- **decodeAvroRecords Method**:
+  - Takes `byte[] bytes` as input (representing binary Avro data).
+  - Defines Avro schema (`schema`) for decoding.
+  - Uses `GenericDatumReader` and `DecoderFactory` to decode the binary Avro data into a `GenericRecord`.
+  - Returns an `Iterable` containing the decoded `GenericRecord`.
+
+- **SingleElementIterator Class**:
+  - A custom iterator implementation to handle a single element (used in `decodeAvroRecords` method).
+
+### Notes:
+
+- Ensure that the Avro schema (`schemaString` in `decodeAvroRecords` method) matches the structure of your binary Avro data.
+- Handle exceptions and error cases as per your application's requirements, especially when dealing with file operations and Avro decoding.
+- Replace `"path/to/binary_avro_data/"` with the actual path to your directory containing `.bin` files.
+- This example reads binary Avro files using Spark's `binaryFiles` method, which is suitable for distributed processing. Adjust the Spark configuration (`setMaster` in `SparkConf`) for your deployment environment.
+
+This Java Spark code should effectively read and process binary Avro records formatted by line separator from `.bin` files. Adjustments may be needed based on your specific Avro schema and data handling requirements.
