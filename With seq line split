@@ -50,3 +50,53 @@ This code assumes you have the Avro schema compiled and available in your classp
 Note: Make sure to include the Avro and Spark libraries in your project dependencies. Also, adjust the `repartition` count based on your cluster resources and data size.
 
 To run this code on Dataproc, package it into a JAR file and submit it to your cluster using the `gcloud dataproc` command.
+
+
+
+
+
+
+
+Here is the entire code:
+```
+import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.SpecificDatumReader;
+import org.apache.avro.io.Decoder;
+import org.apache.avro.io.DecoderFactory;
+import org.apache.spark.api.java.function.Function;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class AvroDecoder {
+  public static void main(String[] args) {
+    SparkConf conf = new SparkConf().setAppName("Avro Decoder");
+    JavaSparkContext jsc = new JavaSparkContext(conf);
+
+    JavaRDD<byte[]> bytes = jsc.binaryRecords(args[0], args[1]);
+
+    JavaRDD<GenericRecord> avroRecords = bytes.map(new Function<byte[], GenericRecord>() {
+      @Override
+      public GenericRecord call(byte[] bytes) {
+        SpecificDatumReader<GenericRecord> reader = new SpecificDatumReader<>(GenericRecord.class);
+        Decoder decoder = DecoderFactory.get().binaryDecoder(bytes, null);
+        return reader.read(null, decoder);
+      }
+    });
+
+    avroRecords.foreach(record -> {
+      // Process the Avro record
+      System.out.println(record.toString());
+    });
+  }
+}
+```
+This code assumes that you have the Avro schema compiled and available in your classpath. The `args[0]` and `args[1]` variables represent the input path and schema path respectively.
+
+Please note that you need to replace `GenericRecord.class` with your specific Avro record class.
+
+Also, make sure to include the necessary dependencies in your project, such as Spark and Avro libraries.
