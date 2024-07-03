@@ -1,0 +1,58 @@
+Yes, you can use an AVSC file to build a SchemaBuilder.
+
+AVSC (Avro Schema Container) files contain a serialized representation of an Avro schema, which can be used to build a SchemaBuilder instance.
+
+Here's an example:
+```
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+import org.apache.avro.Schema as AvroSchema;
+import org.apache.avro.file.DataFileReader;
+import org.apache.avro.generic.GenericDatumReader;
+
+// Assume 'avscFile' is a File object containing the AVSC file
+AvroSchema avroSchema = (new DataFileReader<>(avscFile, new GenericDatumReader<>())).getSchema();
+
+SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+
+// Iterate over the Avro schema fields and add them to the SchemaBuilder
+avroSchema.getFields().forEach(field -> {
+    schemaBuilder.field(field.name(), getSchemaFromAvroSchema(field.schema()));
+});
+
+Schema schema = schemaBuilder.build();
+
+// Use the built Schema instance
+```
+The `getSchemaFromAvroSchema` method is a helper function that recursively builds a `Schema` instance from an Avro schema:
+```
+private Schema getSchemaFromAvroSchema(AvroSchema avroSchema) {
+    switch (avroSchema.getType()) {
+        case STRING:
+            return Schema.STRING_SCHEMA;
+        case INTEGER:
+            return Schema.INT32_SCHEMA;
+        case LONG:
+            return Schema.INT64_SCHEMA;
+        case FLOAT:
+            return Schema.FLOAT32_SCHEMA;
+        case DOUBLE:
+            return Schema.FLOAT64_SCHEMA;
+        case BOOLEAN:
+            return Schema.BOOLEAN_SCHEMA;
+        case ARRAY:
+            return SchemaBuilder.array(getSchemaFromAvroSchema(avroSchema.getElementType()));
+        case RECORD:
+            SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+            avroSchema.getFields().forEach(field -> {
+                schemaBuilder.field(field.name(), getSchemaFromAvroSchema(field.schema()));
+            });
+            return schemaBuilder.build();
+        default:
+            throw new UnsupportedOperationException("Unsupported schema type: " + avroSchema.getType());
+    }
+}
+```
+This code uses the Avro library to read the AVSC file and build a `Schema` instance from the contained Avro schema. The `getSchemaFromAvroSchema` method recursively traverses the Avro schema and creates the corresponding `Schema` instances for each field.
+
+Note that this is a simplified example and may not cover all possible Avro schema definitions. You may need to add additional logic to handle more complex schema definitions.
